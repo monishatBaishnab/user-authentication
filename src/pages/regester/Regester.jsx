@@ -3,15 +3,31 @@ import facebook from '../../assets/images/Facebook.png'
 import google from '../../assets/images/google.png'
 import { useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { FacebookAuthProvider, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithPopup, updateProfile } from "firebase/auth";
+import auth from "../../firebase/firebase.config";
+import Swal from "sweetalert2";
 
 const Regester = () => {
     const [showPass, setShowPass] = useState(false);
     const [showCPass, setShowCPass] = useState(false);
     const [error, setError] = useState('');
 
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer)
+            toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+    })
+
     const handleRegester = (e) => {
         e.preventDefault();
         setError('');
+        const name = e.target.name.value;
         const email = e.target.email.value;
         const pass = e.target.pass.value;
         const cpass = e.target.cpass.value;
@@ -24,19 +40,80 @@ const Regester = () => {
             setError('Password length must up to 6 characters.');
             return;
         }
-        if(!/[A-Z]/.test(pass)){
+        if (!/[A-Z]/.test(pass)) {
             setError('Must contain at least one uppercase letter.');
             return;
         }
-        if(!/[a-z]/.test(pass)){
+        if (!/[a-z]/.test(pass)) {
             setError('Must contain at least one lowercase letter.');
             return;
         }
-        if(!/[1-9]/.test(pass)){
+        if (!/[1-9]/.test(pass)) {
             setError('Must include at least one numeric digit.');
             return;
         }
+
+        createUserWithEmailAndPassword(auth, email, pass)
+            .then(result => {
+                // console.log(result);
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Successfully Regestered. '
+                })
+                e.target.name.value = '';
+                e.target.email.value = '';
+                e.target.pass.value = '';
+                e.target.cpass.value = '';
+                console.log(result);
+                updateProfile(auth.currentUser, {
+                    displayName: name
+                })
+            })
+            .catch(error => {
+                // console.log(error.message);
+                const errorMsg = error.message
+                setError(errorMsg);
+            });
     }
+
+    const handleGoogleLogin = () => {
+        // console.log('google');
+        const googleProvider = new GoogleAuthProvider();
+        signInWithPopup(auth, googleProvider)
+            .then(result => {
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Login Successfully.'
+                })
+                console.log(result.user);
+            })
+            .catch(error => {
+                const errorMsg = error.message;
+                setError(errorMsg);
+            })
+    }
+
+    const handleFacebookLogin = () => {
+        const facebookProvider = new FacebookAuthProvider();
+        signInWithPopup(auth, facebookProvider)
+            .then(result => {
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Login Successfully.'
+                })
+                console.log(result.user);
+            })
+            .catch(error => {
+                const errorMsg = error.message;
+                setError(errorMsg);
+            })
+            ;
+    }
+
+    error !== '' ? Toast.fire({
+        icon: 'error',
+        title: error
+    }) : '';
     return (
         <div>
 
@@ -52,9 +129,10 @@ const Regester = () => {
                     <div className="w-[370px]">
                         <h4 className="text-2xl mb-5 font-medium">Regester Now</h4>
                         <form onSubmit={handleRegester}>
-                            <input name="email" type="email" className="px-5 py-3 w-full rounded-md bg-[#F0EFFF] focus:outline-none placeholder:text-[#A7A3FF]" placeholder="Enter email or user name" />
+                            <input required name="name" type="text" className="px-5 py-3 w-full rounded-md bg-[#F0EFFF] focus:outline-none placeholder:text-[#A7A3FF]" placeholder="Full Name" />
+                            <input required name="email" type="email" className="px-5 py-3 mt-5 w-full rounded-md bg-[#F0EFFF] focus:outline-none placeholder:text-[#A7A3FF]" placeholder="Enter email or user name" />
                             <div className="relative mt-5">
-                                <input name="pass" type={`${showPass === true ? 'text' : 'password'}`} className="px-5 py-3 w-full rounded-md bg-[#F0EFFF] focus:outline-none  placeholder:text-[#A7A3FF]" placeholder="Password" />
+                                <input required name="pass" type={`${showPass === true ? 'text' : 'password'}`} className="px-5 py-3 w-full rounded-md bg-[#F0EFFF] focus:outline-none  placeholder:text-[#A7A3FF]" placeholder="Password" />
                                 <button type="button" onClick={() => {
                                     setShowPass(!showPass);
                                     setError('');
@@ -62,7 +140,7 @@ const Regester = () => {
                             </div>
 
                             <div className="relative mt-5">
-                                <input name="cpass" type={`${showCPass === true ? 'text' : 'password'}`} className="px-5 py-3 w-full rounded-md bg-[#F0EFFF] focus:outline-none  placeholder:text-[#A7A3FF]" placeholder="Confirm Password" />
+                                <input required name="cpass" type={`${showCPass === true ? 'text' : 'password'}`} className="px-5 py-3 w-full rounded-md bg-[#F0EFFF] focus:outline-none  placeholder:text-[#A7A3FF]" placeholder="Confirm Password" />
                                 <button type="button" onClick={() => {
                                     setShowCPass(!showCPass);
                                     setError('');
@@ -73,11 +151,10 @@ const Regester = () => {
 
                             <p className="text-[#B5B5B5] text-center my-4">or continue with</p>
                             <div className="flex items-center justify-center gap-4">
-                                <button type="button"><img className="w-8" src={google} alt='' /></button>
-                                <button type="button"><img className="w-8" src={facebook} alt='' /></button>
+                                <button onClick={handleGoogleLogin} type="button"><img className="w-8" src={google} alt='' /></button>
+                                <button onClick={handleFacebookLogin} type="button"><img className="w-8" src={facebook} alt='' /></button>
                             </div>
                         </form>
-                        {error !== '' ? <p className="mt-4 text-center text-amber-500">{error}</p> : ''}
                     </div>
                 </div>
             </div>

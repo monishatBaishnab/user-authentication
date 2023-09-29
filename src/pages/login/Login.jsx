@@ -1,14 +1,17 @@
 import { Link } from "react-router-dom";
 import facebook from '../../assets/images/Facebook.png'
 import google from '../../assets/images/google.png'
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { sendPasswordResetEmail } from "firebase/auth";
+import auth from "../../firebase/firebase.config";
 import Swal from "sweetalert2";
 
 const Login = () => {
     const [showPass, setShowPass] = useState(false);
     const [passValue, setPassValue] = useState('');
     const [passError, setPassError] = useState('');
+    const emailRef = useRef();
 
     const Toast = Swal.mixin({
         toast: true,
@@ -51,6 +54,22 @@ const Login = () => {
 
     }
 
+    const handleForgotPass = () => {
+        const email = emailRef.current.value;
+        sendPasswordResetEmail(auth, email)
+            .then(() => {
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Link send Success. Check yout Email.'
+                })
+            })
+            .catch(error => {
+                Toast.fire({
+                    icon: 'success',
+                    title: error.message
+                })
+            })
+    }
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 items-center mt-10">
@@ -64,13 +83,13 @@ const Login = () => {
                 <div className="w-[370px]">
                     <h4 className="text-2xl mb-5 font-medium">Log In</h4>
                     <form onSubmit={handleLogin}>
-                        <input name="user" type="text" className="px-5 py-3 w-full rounded-md bg-[#F0EFFF] focus:outline-none placeholder:text-[#A7A3FF]" placeholder="Enter email or user name" />
+                        <input name="user" type="text" ref={emailRef} className="px-5 py-3 w-full rounded-md bg-[#F0EFFF] focus:outline-none placeholder:text-[#A7A3FF]" placeholder="Enter email or user name" />
                         <div className="relative mt-5">
                             <input name="pass" type={`${showPass === true ? 'text' : 'password'}`} value={passValue} onChange={handleInputPass} className="px-5 py-3 w-full rounded-md bg-[#F0EFFF] focus:outline-none  placeholder:text-[#A7A3FF]" placeholder="Password" />
                             <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-[50%] translate-y-[-50%] text-xl p-3 rounded-md cursor-pointer">{showPass === true ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}</button>
                         </div>
                         {passError !== '' ? <p className="text-amber-400 text-sm mt-3">{passError}</p> : ''}
-                        <Link className="text-[#B0B0B0] mt-3 block">Forgor password ?</Link>
+                        <Link onClick={handleForgotPass} className="text-[#B0B0B0] mt-3 block">Forgor password ?</Link>
                         <button type="submit" className="px-4 py-2 text-white rounded-md w-full mt-7 bg-primary">Login</button>
                         <p className="text-[#B5B5B5] text-center my-4">or continue with</p>
                         <div className="flex items-center justify-center gap-4">
